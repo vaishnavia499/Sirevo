@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { PageRoute, CuratedProduct } from './types';
 import { useCart } from './context/CartContext';
+import { useOrders, defaultPastOrders, PastOrder } from './context/OrderContext';
 
 // Layouts
 import { CustomerLayout } from './layouts/CustomerLayout';
@@ -70,7 +71,7 @@ export function useAppNavigator(onSelectProduct?: (product: CuratedProduct) => v
         navigate('/cart');
         break;
       case 'orders':
-        navigate('/orders');
+        navigate('/orders', { state: typeof query === 'object' ? { newOrder: query } : undefined });
         break;
       case 'checkout':
       case 'payment':
@@ -160,8 +161,28 @@ export default function App() {
   });
 
   // Clear Initial State: Initialize the cart state as an empty array ([]) rather than including default items
-  const [cart, setCart] = useState<CuratedProduct[]>([]);
-  const { addToCart: contextAddToCart, removeFromCart: contextRemoveFromCart, clearCart: contextClearCart } = useCart();
+  const { cart: contextCart, addToCart: contextAddToCart, removeFromCart: contextRemoveFromCart, clearCart: contextClearCart } = useCart();
+  const [cart, setCart] = useState<CuratedProduct[]>(() => contextCart || []);
+  const { orders: contextOrders, setOrders: contextSetOrders } = useOrders();
+
+  React.useEffect(() => {
+    if (contextCart) {
+      setCart(contextCart);
+    }
+  }, [contextCart]);
+
+  const [orders, setOrders] = useState<PastOrder[]>(() => {
+    try {
+      const saved = localStorage.getItem('sirevo_orders');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch (e) {
+      console.warn('Failed to load orders from localStorage:', e);
+    }
+    return defaultPastOrders;
+  });
 
   const handleSelectProduct = (product: CuratedProduct) => {
     setSelectedProduct(product);
@@ -197,9 +218,63 @@ export default function App() {
     if (contextClearCart) {
       contextClearCart();
     }
+    try {
+      localStorage.removeItem('sirevo_cart');
+    } catch (e) {
+      console.warn('Failed to clear cart in localStorage:', e);
+    }
   };
 
   const onNavigate = useAppNavigator(handleSelectProduct);
+
+  // Complete checkout lifecycle: 1. State Update on Checkout, 2. Cart Cleanup, 3. View Transition
+  const handleCheckoutComplete = (orderData?: any) => {
+    const orderNumber = orderData?.orderNumber || `#SP${Math.floor(1000 + Math.random() * 9000)}`;
+    const numericAmount = typeof orderData?.numericAmount === 'number' 
+      ? orderData.numericAmount 
+      : (typeof orderData?.price === 'number' ? orderData.price : (Number(String(orderData?.amount || '').replace(/[^0-9.-]+/g, '')) || 56999));
+
+    const newOrder: PastOrder = {
+      id: orderData?.id || `sp-${Date.now().toString(36)}`,
+      orderNumber,
+      name: orderData?.name || orderData?.title || orderData?.productName || (cart[0]?.name ? (cart.length > 1 ? `${cart[0].name} + ${cart.length - 1} more` : cart[0].name) : 'Lenovo IdeaPad Slim 5'),
+      seller: orderData?.seller || orderData?.merchant || orderData?.merchantName || 'TechStore Official',
+      image: orderData?.image || cart[0]?.image || 'https://images.unsplash.com/photo-1588872657578-7efd1f1555ed?w=300&auto=format&fit=crop&q=80',
+      date: orderData?.date || new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+      amount: orderData?.amount || `₹${numericAmount.toLocaleString('en-IN')}`,
+      numericAmount,
+      status: 'In Progress',
+      category: orderData?.category || cart[0]?.category || 'Electronics'
+    };
+
+    // 1. State Update on Checkout: push into orders state array
+    setOrders((prev) => {
+      const updated = [newOrder, ...prev.filter(o => o.id !== newOrder.id && o.orderNumber !== newOrder.orderNumber)];
+      try {
+        localStorage.setItem('sirevo_orders', JSON.stringify(updated));
+      } catch (e) {
+        console.warn('Failed to save orders to localStorage:', e);
+      }
+      return updated;
+    });
+    if (contextSetOrders) {
+      contextSetOrders((prev) => [newOrder, ...prev.filter(o => o.id !== newOrder.id && o.orderNumber !== newOrder.orderNumber)]);
+    }
+
+    // 2. Cart Cleanup: clear cart state array
+    setCart([]);
+    if (contextClearCart) {
+      contextClearCart();
+    }
+    try {
+      localStorage.removeItem('sirevo_cart');
+    } catch (e) {
+      console.warn('Failed to remove cart from localStorage:', e);
+    }
+
+    // 3. View Transition: automatically switch to 'orders' screen
+    onNavigate('orders', newOrder as any);
+  };
 
   const handleViewProductDetails = (product: CuratedProduct) => {
     handleSelectProduct(product);
@@ -306,15 +381,74 @@ export default function App() {
               onRemoveFromCart={handleRemoveFromCart}
               onClearCart={handleClearCart}
               onViewDetails={handleViewProductDetails}
+              onCheckoutComplete={handleCheckoutComplete}
             />
           } 
         />
-        <Route path="/orders" element={<OrdersPage onNavigate={onNavigate as any} />} />
-        <Route path="/checkout" element={<PaymentPage onNavigate={onNavigate as any} />} />
-        <Route path="/payment" element={<PaymentPage onNavigate={onNavigate as any} />} />
-        <Route path="/secure-payment" element={<PaymentPage onNavigate={onNavigate as any} />} />
-        <Route path="/order-success" element={<OrderSuccessPage onNavigate={onNavigate as any} />} />
-        <Route path="/payment-success" element={<OrderSuccessPage onNavigate={onNavigate as any} />} />
+        <Route 
+          path="/orders" 
+          element={
+            <OrdersPage 
+              onNavigate={onNavigate as any} 
+              orders={orders} 
+              setOrders={setOrders} 
+            />
+          } 
+        />
+        <Route 
+          path="/checkout" 
+          element={
+            <PaymentPage 
+              onNavigate={onNavigate as any} 
+              onCheckoutComplete={handleCheckoutComplete}
+              orders={orders}
+              setOrders={setOrders}
+              onClearCart={handleClearCart}
+            />
+          } 
+        />
+        <Route 
+          path="/payment" 
+          element={
+            <PaymentPage 
+              onNavigate={onNavigate as any} 
+              onCheckoutComplete={handleCheckoutComplete}
+              orders={orders}
+              setOrders={setOrders}
+              onClearCart={handleClearCart}
+            />
+          } 
+        />
+        <Route 
+          path="/secure-payment" 
+          element={
+            <PaymentPage 
+              onNavigate={onNavigate as any} 
+              onCheckoutComplete={handleCheckoutComplete}
+              orders={orders}
+              setOrders={setOrders}
+              onClearCart={handleClearCart}
+            />
+          } 
+        />
+        <Route 
+          path="/order-success" 
+          element={
+            <OrderSuccessPage 
+              onNavigate={onNavigate as any} 
+              onCheckoutComplete={handleCheckoutComplete}
+            />
+          } 
+        />
+        <Route 
+          path="/payment-success" 
+          element={
+            <OrderSuccessPage 
+              onNavigate={onNavigate as any} 
+              onCheckoutComplete={handleCheckoutComplete}
+            />
+          } 
+        />
         <Route path="/ai-history" element={<AIHistoryPage onNavigate={onNavigate as any} />} />
         <Route path="/history" element={<AIHistoryPage onNavigate={onNavigate as any} />} />
         <Route path="/profile" element={<ProfilePage onNavigate={onNavigate as any} />} />

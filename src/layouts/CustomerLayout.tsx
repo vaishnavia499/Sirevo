@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { startVoiceRecognition } from '../utils/speech';
 import { useSearch } from '../context/SearchContext';
+import { useCart } from '../context/CartContext';
 
 export interface CustomerLayoutProps {
   cartCount?: number;
@@ -29,6 +30,8 @@ export const CustomerLayout: React.FC<CustomerLayoutProps> = ({ cartCount = 0 })
   const location = useLocation();
   const { isAuthenticated, user, userRole, logout, openAuthModal } = useAuth();
   const { executeSearch } = useSearch();
+  const { cart } = useCart();
+  const effectiveCartCount = cart !== undefined ? cart.length : cartCount;
 
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(true);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -138,7 +141,7 @@ export const CustomerLayout: React.FC<CustomerLayoutProps> = ({ cartCount = 0 })
         onToggleCollapse={() => setIsSidebarCollapsed((prev) => !prev)}
         isOpenMobile={isMobileMenuOpen}
         onCloseMobile={() => setIsMobileMenuOpen(false)}
-        cartCount={cartCount}
+        cartCount={effectiveCartCount}
       />
 
       {/* Main Content Area */}
@@ -216,10 +219,10 @@ export const CustomerLayout: React.FC<CustomerLayoutProps> = ({ cartCount = 0 })
               <span 
                 id="header-cart-badge-count"
                 className={`absolute -top-1 -right-1 min-w-4 h-4 px-1 bg-purple-600 text-white text-[10px] font-bold rounded-full flex items-center justify-center transition-all ${
-                  cartCount > 0 ? 'scale-100 opacity-100' : 'scale-90 opacity-80'
+                  effectiveCartCount > 0 ? 'scale-100 opacity-100' : 'scale-90 opacity-80'
                 }`}
               >
-                {cartCount}
+                {effectiveCartCount}
               </span>
             </button>
 

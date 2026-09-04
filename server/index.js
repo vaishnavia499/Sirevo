@@ -73,6 +73,61 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+// Razorpay & mock payment creation endpoint
+app.post('/api/payment/create-order', async (req, res) => {
+  try {
+    const { amount, currency = 'INR', notes } = req.body;
+    const orderId = `order_${Date.now().toString(36)}_${Math.random().toString(36).substring(2, 6)}`;
+    const keyId = process.env.RAZORPAY_KEY_ID || 'rzp_test_sirevo_mock';
+    
+    if (razorpay) {
+      try {
+        const order = await razorpay.orders.create({
+          amount: Math.round(Number(amount) * 100),
+          currency,
+          receipt: orderId,
+          notes: notes || {}
+        });
+        return res.json({
+          orderId: order.id,
+          amount: order.amount,
+          currency: order.currency,
+          keyId: process.env.RAZORPAY_KEY_ID
+        });
+      } catch (err) {
+        console.warn('Razorpay live order creation fallback to simulated order:', err.message);
+      }
+    }
+
+    return res.json({
+      orderId,
+      amount: Math.round(Number(amount) * 100),
+      currency,
+      keyId
+    });
+  } catch (err) {
+    return res.status(500).json({ error: 'Failed to create payment order', details: err.message });
+  }
+});
+
+// Payment refund endpoint
+app.post('/api/payment/refund', async (req, res) => {
+  try {
+    const { payment_id, amount } = req.body;
+    return res.json({
+      success: true,
+      refund: {
+        id: `rfnd_${Date.now().toString(36)}`,
+        payment_id,
+        amount,
+        status: 'processed'
+      }
+    });
+  } catch (err) {
+    return res.status(500).json({ error: 'Failed to process refund', details: err.message });
+  }
+});
+
 // Catalog listing endpoint
 app.get('/api/products', (req, res) => {
   res.json({ success: true, products: MOCK_CATALOG });

@@ -25,6 +25,7 @@ interface CartPageProps {
   onRemoveFromCart?: (productId: string) => void;
   onClearCart?: () => void;
   onViewDetails?: (product: CuratedProduct) => void;
+  onCheckoutComplete?: (orderData?: any) => void;
 }
 
 export interface CartItem {
@@ -140,11 +141,13 @@ export const CartPage: React.FC<CartPageProps> = ({
     openPurchaseModal({
       id: cartItems[0]?.id || 'cart-checkout',
       title: cartItems.length === 1 ? cartItems[0].name : `${cartItems[0].name} + ${cartItems.length - 1} other item${cartItems.length > 2 ? 's' : ''}`,
+      name: cartItems.length === 1 ? cartItems[0].name : `${cartItems[0].name} + ${cartItems.length - 1} other item${cartItems.length > 2 ? 's' : ''}`,
       price: total,
       originalPrice: originalSubtotal,
       merchant: 'TechStore',
       merchantName: 'TechStore (AI-Ready Merchant)',
       budget: userBudget,
+      image: cartItems[0]?.image,
       specs: `${totalItemCount} total item${totalItemCount > 1 ? 's' : ''} in cart`
     });
   };

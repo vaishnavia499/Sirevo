@@ -17,81 +17,69 @@ import {
   Star,
   Send
 } from 'lucide-react';
+import { useLocation } from 'react-router-dom';
 import { PageRoute } from '../types';
+import { useOrders, defaultPastOrders, PastOrder } from '../context/OrderContext';
+
+export type { PastOrder };
 
 interface OrdersPageProps {
   onNavigate?: (page: PageRoute, query?: string) => void;
+  orders?: PastOrder[];
+  setOrders?: React.Dispatch<React.SetStateAction<PastOrder[]>>;
 }
 
-interface PastOrder {
-  id: string;
-  orderNumber: string;
-  name: string;
-  seller: string;
-  image: string;
-  date: string;
-  amount: string;
-  numericAmount: number;
-  status: 'Delivered' | 'In Progress' | 'Cancelled';
-  category: string;
-}
+export const OrdersPage: React.FC<OrdersPageProps> = ({ 
+  onNavigate,
+  orders: propOrders,
+  setOrders: propSetOrders
+}) => {
+  const { orders: contextOrders } = useOrders();
+  const location = useLocation();
+  const locationNewOrder = (location.state as any)?.newOrder as PastOrder | undefined;
 
-export const OrdersPage: React.FC<OrdersPageProps> = ({ onNavigate }) => {
+  // Resolved current orders list
+  const currentOrders: PastOrder[] = useMemo(() => {
+    let list = propOrders || contextOrders || defaultPastOrders;
+    if (locationNewOrder && !list.some(o => o.id === locationNewOrder.id || o.orderNumber === locationNewOrder.orderNumber)) {
+      list = [locationNewOrder, ...list];
+    }
+    return list;
+  }, [propOrders, contextOrders, locationNewOrder]);
+
   const [selectedFilter, setSelectedFilter] = useState<'all' | 'in-progress' | 'cancelled'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [showTrackModal, setShowTrackModal] = useState(false);
   const [showAiModal, setShowAiModal] = useState(false);
-  const [aiSelectedOrder, setAiSelectedOrder] = useState<string>('#SP1024');
+
+  // Active delivery resolution: find the first in-progress order or fallback to first order
+  const activeOrder: PastOrder = useMemo(() => {
+    return currentOrders.find(o => o.status === 'In Progress') || currentOrders[0] || {
+      id: 'sp-1024',
+      orderNumber: '#SP1024',
+      name: 'Lenovo IdeaPad Slim 5',
+      seller: 'TechStore Official',
+      image: 'https://images.unsplash.com/photo-1588872657578-7efd1f1555ed?w=300&auto=format&fit=crop&q=80',
+      date: 'Oct 24, 2026',
+      amount: '₹56,999',
+      numericAmount: 56999,
+      status: 'In Progress',
+      category: 'Laptops'
+    };
+  }, [currentOrders]);
+
+  const [aiSelectedOrder, setAiSelectedOrder] = useState<string>(activeOrder.orderNumber);
   const [aiQuestion, setAiQuestion] = useState('');
   const [aiChatLogs, setAiChatLogs] = useState<Array<{ sender: 'user' | 'ai'; text: string }>>([
     {
       sender: 'ai',
-      text: 'Hello! I am your Sirevo AI Order Assistant. I have access to real-time telemetry for order #SP1024 (Lenovo IdeaPad Slim 5). How can I assist you today?'
+      text: `Hello! I am your Sirevo AI Order Assistant. I have access to real-time telemetry for order ${activeOrder.orderNumber} (${activeOrder.name}). How can I assist you today?`
     }
   ]);
   const [showNotifications, setShowNotifications] = useState(false);
 
-  const pastOrders: PastOrder[] = [
-    {
-      id: 'sp-0982',
-      orderNumber: '#SP0982',
-      name: 'Sony WH-1000XM5',
-      seller: 'AudioWorld',
-      image: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=200&auto=format&fit=crop&q=80',
-      date: 'Oct 12, 2023',
-      amount: '₹29,990',
-      numericAmount: 29990,
-      status: 'Delivered',
-      category: 'Audio'
-    },
-    {
-      id: 'sp-0951',
-      orderNumber: '#SP0951',
-      name: 'Nest Cam (Battery)',
-      seller: 'SmartHome Co',
-      image: 'https://images.unsplash.com/photo-1558002038-1055907df827?w=200&auto=format&fit=crop&q=80',
-      date: 'Sep 28, 2023',
-      amount: '₹14,499',
-      numericAmount: 14499,
-      status: 'Delivered',
-      category: 'Smart Home'
-    },
-    {
-      id: 'sp-0820',
-      orderNumber: '#SP0820',
-      name: 'Keychron K2 V2',
-      seller: 'MechKeys IN',
-      image: 'https://images.unsplash.com/photo-1587829741301-dc798b83add3?w=200&auto=format&fit=crop&q=80',
-      date: 'Sep 15, 2023',
-      amount: '₹7,999',
-      numericAmount: 7999,
-      status: 'Delivered',
-      category: 'Keyboards'
-    }
-  ];
-
   const filteredOrders = useMemo(() => {
-    return pastOrders.filter(order => {
+    return currentOrders.filter(order => {
       // Filter tab check
       if (selectedFilter === 'in-progress' && order.status !== 'In Progress') return false;
       if (selectedFilter === 'cancelled' && order.status !== 'Cancelled') return false;
@@ -107,7 +95,7 @@ export const OrdersPage: React.FC<OrdersPageProps> = ({ onNavigate }) => {
       }
       return true;
     });
-  }, [selectedFilter, searchQuery, pastOrders]);
+  }, [selectedFilter, searchQuery, currentOrders]);
 
   const handleOpenAiWithQuestion = (orderNum: string, initialText?: string) => {
     setAiSelectedOrder(orderNum);
@@ -174,7 +162,7 @@ export const OrdersPage: React.FC<OrdersPageProps> = ({ onNavigate }) => {
                   <p className="font-semibold text-white flex items-center gap-1.5">
                     <Truck className="w-3.5 h-3.5 text-purple-400" /> Package Dispatched
                   </p>
-                  <p className="text-slate-400 text-[11px] mt-0.5">Order #SP1024 (Lenovo IdeaPad Slim 5) is out for delivery.</p>
+                  <p className="text-slate-400 text-[11px] mt-0.5">Order {activeOrder.orderNumber} ({activeOrder.name}) is out for delivery.</p>
                 </div>
                 <div className="p-2.5 rounded-xl bg-[#111827]/60 text-xs">
                   <p className="font-semibold text-slate-300">Price Drop Alert</p>
@@ -212,12 +200,12 @@ export const OrdersPage: React.FC<OrdersPageProps> = ({ onNavigate }) => {
           </p>
         </div>
 
-        {/* Far right: Dark pill badge showing 'Total Orders 24' */}
+        {/* Far right: Dark pill badge showing total orders count */}
         <div className="self-start sm:self-center">
           <div className="inline-flex items-center gap-2 bg-[#1F2937] border border-slate-700/80 px-4 py-2 rounded-full shadow-inner">
             <span className="text-xs sm:text-sm font-medium text-slate-300">Total Orders</span>
-            <span className="text-xs sm:text-sm font-bold text-white bg-slate-800/90 px-2 py-0.5 rounded-full border border-slate-700">
-              24
+            <span id="orders-total-count-badge" className="text-xs sm:text-sm font-bold text-white bg-slate-800/90 px-2 py-0.5 rounded-full border border-slate-700">
+              {currentOrders.length}
             </span>
           </div>
         </div>
@@ -230,16 +218,16 @@ export const OrdersPage: React.FC<OrdersPageProps> = ({ onNavigate }) => {
         </h2>
 
         {/* Active Order Card */}
-        <div className="bg-[#1F2937] border border-slate-700 rounded-2xl p-5 sm:p-6 mt-4 shadow-xl relative overflow-hidden">
+        <div id="active-order-delivery-card" className="bg-[#1F2937] border border-slate-700 rounded-2xl p-5 sm:p-6 mt-4 shadow-xl relative overflow-hidden">
           {/* Top Row of Card */}
           <div className="flex items-center justify-between pb-4 border-b border-slate-800/80">
             <span className="text-xs sm:text-sm font-mono text-slate-400 tracking-wide">
-              Order #SP1024
+              Order {activeOrder.orderNumber}
             </span>
 
             <div className="inline-flex items-center gap-1.5 bg-white text-slate-900 font-semibold px-3 py-1 rounded-full text-xs shadow-sm">
               <span className="text-sm leading-none">🚚</span>
-              <span>Shipped</span>
+              <span>{activeOrder.status === 'In Progress' ? 'In Transit / Shipped' : activeOrder.status}</span>
             </div>
           </div>
 
@@ -252,8 +240,8 @@ export const OrdersPage: React.FC<OrdersPageProps> = ({ onNavigate }) => {
                 {/* Product Thumbnail */}
                 <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-xl bg-[#111827] border border-slate-700 p-1.5 shrink-0 overflow-hidden flex items-center justify-center">
                   <img
-                    src="https://images.unsplash.com/photo-1588872657578-7efd1f1555ed?w=300&auto=format&fit=crop&q=80"
-                    alt="Lenovo IdeaPad Slim 5"
+                    src={activeOrder.image}
+                    alt={activeOrder.name}
                     className="w-full h-full object-cover rounded-lg"
                     referrerPolicy="no-referrer"
                   />
@@ -262,13 +250,13 @@ export const OrdersPage: React.FC<OrdersPageProps> = ({ onNavigate }) => {
                 {/* Details */}
                 <div className="min-w-0">
                   <h3 className="text-base sm:text-lg font-bold text-white tracking-tight truncate">
-                    Lenovo IdeaPad Slim 5
+                    {activeOrder.name}
                   </h3>
                   <p className="text-xs sm:text-sm text-slate-400 mt-0.5">
-                    Sold by: <span className="text-slate-300 font-medium">TechStore Official</span>
+                    Sold by: <span className="text-slate-300 font-medium">{activeOrder.seller}</span>
                   </p>
-                  <p className="text-xl sm:text-2xl font-extrabold text-white mt-1.5 tracking-tight">
-                    ₹56,999
+                  <p className="text-xl sm:text-2xl font-extrabold text-white mt-1.5 tracking-tight font-mono">
+                    {activeOrder.amount}
                   </p>
                 </div>
               </div>
@@ -283,7 +271,7 @@ export const OrdersPage: React.FC<OrdersPageProps> = ({ onNavigate }) => {
                     Expected Delivery Date
                   </span>
                   <span className="text-xs sm:text-sm font-bold text-white tracking-tight">
-                    Oct 24, 2026 <span className="text-slate-400 font-normal">(by 8:00 PM)</span>
+                    {activeOrder.date} <span className="text-slate-400 font-normal">(by 8:00 PM)</span>
                   </span>
                 </div>
               </div>
@@ -360,7 +348,7 @@ export const OrdersPage: React.FC<OrdersPageProps> = ({ onNavigate }) => {
 
                   {/* Ask AI about this order Button */}
                   <button
-                    onClick={() => handleOpenAiWithQuestion('#SP1024', 'Where is my order?')}
+                    onClick={() => handleOpenAiWithQuestion(activeOrder.orderNumber, 'Where is my order?')}
                     id="ask-ai-order-btn"
                     className="flex-1 min-w-[190px] py-2.5 px-5 rounded-xl bg-gradient-to-r from-purple-600 via-purple-500 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold text-xs sm:text-sm shadow-lg shadow-purple-600/25 hover:shadow-purple-600/40 transition-all cursor-pointer flex items-center justify-center gap-2 active:scale-[0.99]"
                   >
@@ -372,7 +360,7 @@ export const OrdersPage: React.FC<OrdersPageProps> = ({ onNavigate }) => {
                 {/* Subtext */}
                 <div className="mt-3">
                   <button
-                    onClick={() => handleOpenAiWithQuestion('#SP1024', 'Where is my order?')}
+                    onClick={() => handleOpenAiWithQuestion(activeOrder.orderNumber, 'Where is my order?')}
                     className="text-xs text-slate-400 hover:text-purple-300 transition-colors flex items-center gap-1.5 cursor-pointer text-left group"
                   >
                     <span>Try asking:</span>
@@ -530,12 +518,23 @@ export const OrdersPage: React.FC<OrdersPageProps> = ({ onNavigate }) => {
                         {order.amount}
                       </td>
 
-                      {/* Status: Dark pill badge 'Delivered' */}
+                      {/* Status badge based on order.status */}
                       <td className="py-4 px-4">
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-[#111827] text-slate-300 border border-slate-700/60 shadow-xs">
-                          <span>Delivered</span>
-                          <Star className="w-3 h-3 text-amber-400 fill-amber-400" />
-                        </span>
+                        {order.status === 'In Progress' ? (
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-950/80 text-blue-300 border border-blue-700/60 shadow-xs">
+                            <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
+                            <span>In Progress</span>
+                          </span>
+                        ) : order.status === 'Cancelled' ? (
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-rose-950/80 text-rose-300 border border-rose-700/60 shadow-xs">
+                            <span>Cancelled</span>
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-[#111827] text-slate-300 border border-slate-700/60 shadow-xs">
+                            <span>Delivered</span>
+                            <Star className="w-3 h-3 text-amber-400 fill-amber-400" />
+                          </span>
+                        )}
                       </td>
 
                       {/* Actions: AI sparkle icon button for contextual help */}
