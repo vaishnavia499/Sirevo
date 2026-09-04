@@ -11,22 +11,23 @@ import {
   Check
 } from 'lucide-react';
 import { CuratedProduct, PageRoute } from '../types';
+import { useCart } from '../context/CartContext';
 
 export interface ProductCardProps {
   product: CuratedProduct;
-  onNavigate: (page: PageRoute) => void;
+  onNavigate: (page: PageRoute, productQuery?: string | CuratedProduct) => void;
   onViewDetails?: (product: CuratedProduct) => void;
   onAddToCart?: (product: CuratedProduct) => void;
-  onBuyClick: (product: CuratedProduct) => void;
-  onAddToCompare: (product: CuratedProduct) => void;
-  isCompared: boolean;
-  onOpenStockAlert?: (product: {
+  onBuyClick?: (product: CuratedProduct) => void;
+  onAddToCompare?: (product: CuratedProduct) => void;
+  isCompared?: boolean;
+  onOpenStockAlert?: (alertProduct: {
     productId: string;
     productName: string;
-    price?: number | null;
-    image?: string | null;
-    thumbnail?: string | null;
-    externalLink?: string | null;
+    price: number;
+    image?: string;
+    thumbnail?: string;
+    externalLink?: string;
   }) => void;
   initialInStock?: boolean;
 }
@@ -46,11 +47,14 @@ export const ProductCard: React.FC<ProductCardProps> = ({
     (product as any).in_stock !== undefined ? (product as any).in_stock : initialInStock
   );
   const [isAddedToCart, setIsAddedToCart] = useState<boolean>(false);
+  const { addToCart: contextAddToCart } = useCart();
 
   const handleAddToCartClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (onAddToCart) {
       onAddToCart(product);
+    } else if (contextAddToCart) {
+      contextAddToCart(product);
     }
     setIsAddedToCart(true);
     setTimeout(() => setIsAddedToCart(false), 1800);

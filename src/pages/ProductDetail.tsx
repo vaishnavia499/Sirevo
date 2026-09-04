@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { useCheckout } from '../context/CheckoutContext';
 import { useCompare } from '../context/CompareContext';
+import { useCart } from '../context/CartContext';
 import { StockAlertModal } from '../components/StockAlertModal';
 
 interface ProductDetailProps {
@@ -88,10 +89,13 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
   const [isInStock, setIsInStock] = useState<boolean>((product as any).in_stock !== false);
   const [isStockAlertOpen, setIsStockAlertOpen] = useState<boolean>(false);
   const [isAddedToCart, setIsAddedToCart] = useState<boolean>(false);
+  const { addToCart: contextAddToCart } = useCart();
 
   const handleAddToCartClick = () => {
     if (onAddToCart) {
       onAddToCart(product);
+    } else if (contextAddToCart) {
+      contextAddToCart(product);
     }
     setIsAddedToCart(true);
     setTimeout(() => setIsAddedToCart(false), 1800);

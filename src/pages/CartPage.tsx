@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { CuratedProduct, PageRoute } from '../types';
 import { useCheckout } from '../context/CheckoutContext';
+import { useCart } from '../context/CartContext';
 
 interface CartPageProps {
   onNavigate: (page: PageRoute) => void;
@@ -67,18 +68,27 @@ export const CartPage: React.FC<CartPageProps> = ({
   onClearCart,
   onViewDetails
 }) => {
+  const { 
+    cart: contextCart, 
+    removeFromCart: contextRemoveFromCart, 
+    clearCart: contextClearCart 
+  } = useCart();
+
+  const effectiveCart = propCartItems !== undefined ? propCartItems : contextCart;
+
+  // Clear Initial State: Initialize the cart state as an empty array ([]) rather than including default items
   const [cartItems, setCartItems] = useState<CartItem[]>(() => {
-    if (propCartItems && propCartItems.length > 0) {
-      return propCartItems.map(mapPropToCartItem);
+    if (effectiveCart && effectiveCart.length > 0) {
+      return effectiveCart.map(mapPropToCartItem);
     }
     return [];
   });
 
   React.useEffect(() => {
-    if (propCartItems) {
-      setCartItems(propCartItems.map(mapPropToCartItem));
+    if (effectiveCart) {
+      setCartItems(effectiveCart.map(mapPropToCartItem));
     }
-  }, [propCartItems]);
+  }, [effectiveCart]);
 
   const [userBudget, setUserBudget] = useState<number>(60000);
   const [budgetConfirmed, setBudgetConfirmed] = useState<boolean>(false);
@@ -98,12 +108,18 @@ export const CartPage: React.FC<CartPageProps> = ({
     if (onRemoveFromCart) {
       onRemoveFromCart(id);
     }
+    if (contextRemoveFromCart) {
+      contextRemoveFromCart(id);
+    }
   };
 
   const handleClearAll = () => {
     setCartItems([]);
     if (onClearCart) {
       onClearCart();
+    }
+    if (contextClearCart) {
+      contextClearCart();
     }
   };
 

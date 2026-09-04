@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { PageRoute, CuratedProduct } from './types';
+import { useCart } from './context/CartContext';
 
 // Layouts
 import { CustomerLayout } from './layouts/CustomerLayout';
@@ -158,23 +159,9 @@ export default function App() {
     }
   });
 
-  const [cart, setCart] = useState<CuratedProduct[]>(() => {
-    try {
-      const saved = localStorage.getItem('sirevo_cart');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) {
-          // Purge any legacy mock items if they ever got saved
-          return parsed.filter(item => 
-            item && item.id !== 'cart-lenovo' && item.id !== 'cart-mouse' && !item.id?.startsWith('cart-item-')
-          );
-        }
-      }
-      return [];
-    } catch {
-      return [];
-    }
-  });
+  // Clear Initial State: Initialize the cart state as an empty array ([]) rather than including default items
+  const [cart, setCart] = useState<CuratedProduct[]>([]);
+  const { addToCart: contextAddToCart, removeFromCart: contextRemoveFromCart, clearCart: contextClearCart } = useCart();
 
   const handleSelectProduct = (product: CuratedProduct) => {
     setSelectedProduct(product);
@@ -186,41 +173,29 @@ export default function App() {
   };
 
   const handleAddToCart = (product: CuratedProduct) => {
-    setCart((prevCart) => {
-      const updated = [...prevCart, product];
-      try {
-        localStorage.setItem('sirevo_cart', JSON.stringify(updated));
-      } catch (e) {
-        console.warn('Failed to save cart to localStorage:', e);
-      }
-      return updated;
-    });
+    setCart((prevCart) => [...prevCart, product]);
+    if (contextAddToCart) {
+      contextAddToCart(product);
+    }
   };
 
   const handleRemoveFromCart = (productId: string) => {
     setCart((prevCart) => {
       const index = prevCart.findIndex(p => (p.product_id || (p as any).id) === productId);
-      let updated: CuratedProduct[];
       if (index !== -1) {
-        updated = [...prevCart.slice(0, index), ...prevCart.slice(index + 1)];
-      } else {
-        updated = prevCart.filter(p => (p.product_id || (p as any).id) !== productId);
+        return [...prevCart.slice(0, index), ...prevCart.slice(index + 1)];
       }
-      try {
-        localStorage.setItem('sirevo_cart', JSON.stringify(updated));
-      } catch (e) {
-        console.warn('Failed to save cart to localStorage:', e);
-      }
-      return updated;
+      return prevCart.filter(p => (p.product_id || (p as any).id) !== productId);
     });
+    if (contextRemoveFromCart) {
+      contextRemoveFromCart(productId);
+    }
   };
 
   const handleClearCart = () => {
     setCart([]);
-    try {
-      localStorage.removeItem('sirevo_cart');
-    } catch (e) {
-      console.warn('Failed to clear cart in localStorage:', e);
+    if (contextClearCart) {
+      contextClearCart();
     }
   };
 
