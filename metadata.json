@@ -1,0 +1,6 @@
+{
+  "name": "Sirevo AI",
+  "description": "Smart AI-powered shopping assistant application with multi-page navigation and shopping pilot interface.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

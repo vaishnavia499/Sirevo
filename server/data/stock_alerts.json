@@ -1,0 +1,82 @@
+{
+  "subscriptions": [
+    {
+      "id": "alert-1788523113329-70xk1",
+      "productId": "prod-lenovo-slim5",
+      "productName": "Lenovo IdeaPad Slim 5",
+      "email": "alex.customer@sirevo.ai",
+      "price": 56999,
+      "image": null,
+      "externalLink": null,
+      "status": "notified",
+      "createdAt": "2026-09-04T11:58:33.329Z",
+      "notifiedAt": "2026-09-04T12:00:19.062Z"
+    },
+    {
+      "id": "alert-1788523218923-4rgq9",
+      "productId": "prod-lenovo-slim5",
+      "productName": "Lenovo IdeaPad Slim 5",
+      "email": "shopper@example.com",
+      "price": 56999,
+      "image": "https://dummyimage.com/400x400/0f172a/4ade80&text=Lenovo",
+      "externalLink": null,
+      "status": "notified",
+      "createdAt": "2026-09-04T12:00:18.923Z",
+      "notifiedAt": "2026-09-04T12:00:19.074Z"
+    },
+    {
+      "id": "alert-1788523586712-rxkj0",
+      "productId": "prod-lenovo-slim5",
+      "productName": "Lenovo IdeaPad Slim 5",
+      "email": "alex.customer@sirevo.ai",
+      "price": 56999,
+      "image": "https://dummyimage.com/400x400/0f172a/4ade80&text=Lenovo",
+      "externalLink": null,
+      "status": "notified",
+      "createdAt": "2026-09-04T12:06:26.712Z",
+      "notifiedAt": "2026-09-04T12:07:57.021Z"
+    },
+    {
+      "id": "alert-1788523752138-bax1q",
+      "productId": "prod-lenovo-slim5",
+      "productName": "Lenovo IdeaPad Slim 5",
+      "email": "alex.customer@sirevo.ai",
+      "price": 56999,
+      "image": "https://dummyimage.com/400x400/0f172a/4ade80&text=Lenovo",
+      "externalLink": null,
+      "status": "notified",
+      "createdAt": "2026-09-04T12:09:12.138Z",
+      "notifiedAt": "2026-09-04T12:11:20.550Z"
+    },
+    {
+      "id": "alert-1788523994779-90hvw",
+      "productId": "prod-lenovo-slim5",
+      "productName": "Lenovo IdeaPad Slim 5",
+      "email": "alex.customer@sirevo.ai",
+      "price": 56999,
+      "image": "https://dummyimage.com/400x400/0f172a/4ade80&text=Lenovo",
+      "externalLink": null,
+      "status": "notified",
+      "createdAt": "2026-09-04T12:13:14.779Z",
+      "notifiedAt": "2026-09-04T12:14:51.336Z"
+    },
+    {
+      "id": "alert-1788524164300-zqqhu",
+      "productId": "prod-lenovo-slim5",
+      "productName": "Lenovo IdeaPad Slim 5",
+      "email": "alex.customer@sirevo.ai",
+      "price": 56999,
+      "image": "https://dummyimage.com/400x400/0f172a/4ade80&text=Lenovo",
+      "externalLink": null,
+      "status": "notified",
+      "createdAt": "2026-09-04T12:16:04.300Z",
+      "notifiedAt": "2026-09-04T12:19:32.634Z"
+    }
+  ],
+  "productStock": {
+    "prod-lenovo-slim5": {
+      "inStock": true,
+      "updatedAt": "2026-09-04T12:19:32.620Z"
+    }
+  }
+}
